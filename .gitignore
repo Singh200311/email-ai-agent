@@ -1,0 +1,14 @@
+# secrets
+.env
+credentials.json
+token.json
+
+# python
+venv/
+__pycache__/
+*.pyc
+
+# runtime files
+email_memory.db
+processed_emails.txt
+processed.json
