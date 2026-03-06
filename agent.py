@@ -9,8 +9,6 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from io import StringIO
-from tempfile import NamedTemporaryFile
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -18,7 +16,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 from langgraph.graph import StateGraph, END
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 # ----------------------
 # LOAD ENV
@@ -46,7 +44,7 @@ class EmailState(TypedDict):
     confidence: float
 
 # ----------------------
-# Pydantic schema
+# Pydantic schema for validation
 # ----------------------
 class EmailAnalysis(BaseModel):
     category: str = Field(..., pattern="^(Urgent|Meeting|Finance|Personal|Low Priority)$")
@@ -116,6 +114,7 @@ def slack_node(state: EmailState):
 # ----------------------
 def analyze_node(state: EmailState):
     try:
+        # Few-shot examples for more consistent classification
         system_prompt = """
 You are an AI email assistant. Classify emails into: Urgent, Meeting, Finance, Personal, Low Priority.
 Return ONLY JSON in this format:
@@ -227,20 +226,12 @@ def authenticate_google():
     creds = None
     if os.path.exists(TOKEN_PATH):
         creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
-
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # Read credentials from environment variable
-            client_secrets = json.loads(os.environ["GOOGLE_CREDENTIALS"])
-            with NamedTemporaryFile("w+", delete=False) as f:
-                json.dump(client_secrets, f)
-                temp_path = f.name
-
-            flow = InstalledAppFlow.from_client_secrets_file(temp_path, SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
             creds = flow.run_local_server(port=0)
-
         with open(TOKEN_PATH, "w") as token:
             token.write(creds.to_json())
 
