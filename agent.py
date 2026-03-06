@@ -14,20 +14,15 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
-from httplib2 import Http
 
 from langgraph.graph import StateGraph, END
+from pydantic import BaseModel, Field, ValidationError
 
 # ----------------------
 # LOAD ENV
 # ----------------------
 load_dotenv()
-
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    timeout=180
-)
-
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=180)
 SLACK_WEBHOOK = os.getenv("SLACK_WEBHOOK_URL")
 
 SCOPES = [
@@ -47,6 +42,14 @@ class EmailState(TypedDict):
     category: str
     summary: str
     confidence: float
+
+# ----------------------
+# Pydantic schema for validation
+# ----------------------
+class EmailAnalysis(BaseModel):
+    category: str = Field(..., regex="^(Urgent|Meeting|Finance|Personal|Low Priority)$")
+    summary: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
 
 # ----------------------
 # DATABASE
@@ -111,31 +114,50 @@ def slack_node(state: EmailState):
 # ----------------------
 def analyze_node(state: EmailState):
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": """
-Classify email into: Urgent, Meeting, Finance, Personal, Low Priority
-Return ONLY as JSON:
-
+        # Few-shot examples for more consistent classification
+        system_prompt = """
+You are an AI email assistant. Classify emails into: Urgent, Meeting, Finance, Personal, Low Priority.
+Return ONLY JSON in this format:
 {
   "category": "<category>",
   "summary": "<summary>",
   "confidence": 0-1
 }
+
+Example 1:
+Email: "Server is down! Need immediate attention!"
+Output: {"category": "Urgent", "summary": "Server outage requires immediate action", "confidence": 0.95}
+
+Example 2:
+Email: "Let's schedule a call on Thursday to discuss Q2 targets."
+Output: {"category": "Meeting", "summary": "Schedule Q2 targets call on Thursday", "confidence": 0.9}
+
+Example 3:
+Email: "Please find attached the invoice for last month."
+Output: {"category": "Finance", "summary": "Attached invoice for last month", "confidence": 0.9}
 """
-                },
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": state["email_text"]}
             ]
         )
 
-        result = response.choices[0].message.content
-        data = json.loads(result)
-        state["category"] = data.get("category", "Low Priority")
-        state["summary"] = data.get("summary", "")
-        state["confidence"] = float(data.get("confidence", 0.9))
+        raw_result = response.choices[0].message.content.strip()
+        data = json.loads(raw_result)
+        analysis = EmailAnalysis(**data)
+
+        state["category"] = analysis.category
+        state["summary"] = analysis.summary
+        state["confidence"] = analysis.confidence
+
+    except (json.JSONDecodeError, ValidationError) as ve:
+        print("Validation error:", ve)
+        state["category"] = "Low Priority"
+        state["summary"] = state["email_text"][:100] + "..."
+        state["confidence"] = 0.5
 
     except Exception as e:
         print("OpenAI error:", e)
@@ -213,10 +235,10 @@ def authenticate_google():
         with open(TOKEN_PATH, "w") as token:
             token.write(creds.to_json())
 
-    # Remove the `http` argument, just pass credentials
     gmail_service = build("gmail", "v1", credentials=creds, cache_discovery=False)
     calendar_service = build("calendar", "v3", credentials=creds, cache_discovery=False)
     return gmail_service, calendar_service
+
 # ----------------------
 # EMAIL BODY
 # ----------------------
