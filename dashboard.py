@@ -17,7 +17,24 @@ st.caption(f"Database file: {os.path.abspath(DB_FILE)}")
 
 def load_data():
     conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql_query("SELECT * FROM emails ORDER BY processed_at DESC", conn)
+
+    # Create table if it doesn't exist
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS emails (
+        id TEXT PRIMARY KEY,
+        category TEXT,
+        summary TEXT,
+        confidence REAL,
+        processed_at TEXT
+    )
+    """)
+
+    # Load data
+    df = pd.read_sql_query(
+        "SELECT * FROM emails ORDER BY processed_at DESC",
+        conn
+    )
+
     conn.close()
     return df
 
