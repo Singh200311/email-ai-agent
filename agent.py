@@ -16,7 +16,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 from langgraph.graph import StateGraph, END
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 # ----------------------
 # LOAD ENV
@@ -47,7 +47,7 @@ class EmailState(TypedDict):
 # Pydantic schema for validation
 # ----------------------
 class EmailAnalysis(BaseModel):
-    category: str = Field(..., regex="^(Urgent|Meeting|Finance|Personal|Low Priority)$")
+    category: str = Field(..., pattern="^(Urgent|Meeting|Finance|Personal|Low Priority)$")
     summary: str
     confidence: float = Field(..., ge=0.0, le=1.0)
 
