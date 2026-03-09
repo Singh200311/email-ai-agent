@@ -12,3 +12,9 @@ __pycache__/
 email_memory.db
 processed_emails.txt
 processed.json
+
+# OS files
+.DS_Store
+
+# optional logs
+*.log
