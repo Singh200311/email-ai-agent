@@ -1,139 +1,213 @@
-<<<<<<< HEAD
 # AI Email Agent
 
-LangGraph AI agent that reads Gmail, analyzes emails, and shows insights in a Streamlit dashboard.
-=======
-# email-ai-agent
->>>>>>> b484380ba3de1fefd4e3e61a9c94895e4544069a
-# Email AI Agent
-
-## Description
-
-This project is an **Email AI Agent** that:
-
-* Automatically reads your unread Gmail messages.
-* Classifies emails into categories: `Urgent`, `Meeting`, `Finance`, `Personal`, `Low Priority`.
-* Summarizes emails and assigns a **confidence score** (0-1).
-* Sends notifications to Slack for urgent emails.
-* Extracts meeting info and creates events in Google Calendar.
-* Saves all processed emails in a local SQLite database (`email_memory.db`).
-
-The project also includes a **Streamlit dashboard** to visualize processed emails, category distribution, and confidence scores.
+An intelligent **AI-powered email assistant** that reads Gmail messages, analyzes them using an LLM, and provides insights through a real-time dashboard.
 
 ---
 
-## Features
+# Overview
 
-* **Structured JSON validation** for email classification.
-* **Few-shot prompting** for consistent AI predictions.
-* **Confidence scoring** with fallbacks for errors.
-* Integration with **Slack** and **Google Calendar**.
-* **Persistent storage** using SQLite.
-* **Real-time dashboard** using Streamlit.
+The **AI Email Agent** automatically processes unread Gmail messages and performs the following tasks:
+
+* Classifies emails into categories:
+
+  * `Urgent`
+  * `Meeting`
+  * `Finance`
+  * `Personal`
+  * `Low Priority`
+* Generates a concise **AI summary** of each email.
+* Assigns a **confidence score (0–1)** to the classification.
+* Sends **Slack notifications** for urgent emails.
+* Extracts meeting details and creates **Google Calendar events**.
+* Stores processed emails in **MongoDB Atlas**.
+* Displays insights through a **Streamlit dashboard**.
 
 ---
 
-## Prerequisites
+# Architecture
 
-1. Python 3.10+ installed.
-2. A Gmail account with API access.
-3. Google Cloud project with `credentials.json` for Gmail and Calendar API.
-4. Slack webhook URL (optional, for notifications).
-5. OpenAI API key.
+Gmail API
+↓
+AI Agent (LangGraph + OpenAI)
+↓
+MongoDB Atlas (Email Memory)
+↓
+Streamlit Dashboard (Analytics)
 
 ---
 
-## Installation
+# Features
 
-1. Clone the repository:
+* AI-powered **email classification**
+* **Structured JSON validation** using Pydantic
+* **Few-shot prompting** for consistent predictions
+* **Confidence scoring** with fallback handling
+* **Slack notifications** for urgent emails
+* **Automatic Google Calendar event creation**
+* **MongoDB Atlas database for persistent storage**
+* **Real-time Streamlit dashboard**
 
-```bash
+---
+
+# Tech Stack
+
+* Python
+* OpenAI API
+* LangGraph
+* Gmail API
+* Google Calendar API
+* MongoDB Atlas
+* Streamlit
+* Slack Webhooks
+
+---
+
+# Project Structure
+
+```
+email-ai-agent
+│
+├── agent.py              # Main AI email processing agent
+├── dashboard.py          # Streamlit analytics dashboard
+├── db.py                 # MongoDB database connection
+├── requirements.txt
+├── README.md
+│
+├── .env                  # Environment variables (not committed)
+├── credentials.json      # Google API credentials (not committed)
+├── token.json            # OAuth token (auto-generated)
+│
+├── venv/
+└── __pycache__/
+```
+
+---
+
+# Prerequisites
+
+* Python **3.10+**
+* Gmail account
+* Google Cloud project with Gmail API enabled
+* Google Calendar API enabled
+* MongoDB Atlas database
+* OpenAI API key
+* Slack webhook URL (optional)
+
+---
+
+# Installation
+
+### 1 Clone the repository
+
+```
 git clone <your-repo-url>
-cd <repo-folder>
+cd email-ai-agent
 ```
 
-2. Create a virtual environment (recommended):
+### 2 Create virtual environment
 
-```bash
+```
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 ```
 
-3. Install dependencies:
+Windows:
 
-```bash
+```
+venv\Scripts\activate
+```
+
+---
+
+### 3 Install dependencies
+
+```
 pip install -r requirements.txt
 ```
 
-> **requirements.txt** should include:
+---
+
+### 4 Create `.env` file
 
 ```
-openai
-python-dotenv
-google-api-python-client
-google-auth
-google-auth-oauthlib
-pydantic
-requests
-langgraph
-streamlit
-streamlit-autorefresh
-```
-
-4. Create a `.env` file in the root folder:
-
-```text
 OPENAI_API_KEY=your_openai_api_key
-SLACK_WEBHOOK_URL=your_slack_webhook_url (optional)
+MONGO_URI=your_mongodb_connection_string
+SLACK_WEBHOOK_URL=your_slack_webhook_url
 ```
-
-5. Add `credentials.json` from Google Cloud in the root folder.
 
 ---
 
-## Running the Agent Locally
+### 5 Add Google credentials
 
-1. Initialize the database (optional, agent auto-creates it):
+Download `credentials.json` from **Google Cloud Console** and place it in the root folder.
 
-```bash
+---
+
+# Running the AI Agent
+
+Start the email processing agent:
+
+```
 python agent.py
 ```
 
-2. The agent will start reading unread Gmail messages every 30 seconds.
-3. Processed emails are saved in `email_memory.db`.
-4. Slack notifications and calendar events are triggered based on email category.
+The agent will:
 
-> Note: The agent will create `token.json` on first run for Google API authentication.
+* Fetch unread Gmail messages
+* Analyze them using the AI model
+* Save results to MongoDB
+* Send Slack alerts for urgent emails
+* Create calendar events for meeting emails
 
 ---
 
-## Running the Dashboard Locally
+# Running the Dashboard
 
-1. Start the Streamlit dashboard:
+Start the Streamlit dashboard:
 
-```bash
+```
 streamlit run dashboard.py
 ```
 
-2. Open the local URL provided by Streamlit (usually `http://localhost:8501`).
-3. The dashboard shows:
+Open the dashboard:
 
-   * Total emails processed
-   * Emails by category
-   * Confidence distribution
-   * Table of processed emails
+```
+http://localhost:8501
+```
 
----
+The dashboard shows:
 
-## Important Notes
-
-* **Do not commit** `.env` or `credentials.json` to GitHub.
-* Ensure Gmail API and Calendar API are enabled in your Google Cloud project.
-* Slack notifications require a valid webhook URL.
-* Free hosting options for continuous running include **Replit** for the agent and **Streamlit Cloud** for the dashboard.
+* Total emails processed
+* Category distribution
+* Confidence score distribution
+* Processed email table
 
 ---
 
-## License
+# Security Notes
+
+Do **NOT commit** the following files:
+
+```
+.env
+credentials.json
+token.json
+```
+
+These contain sensitive credentials.
+
+---
+
+# Future Improvements
+
+* Email reply automation
+* Email sentiment analysis
+* Priority prediction
+* Multi-user email agents
+* Cloud deployment (AWS / GCP)
+
+---
+
+# License
 
 MIT License
